@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; object-src 'none'; media-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<title>SecureSend Helper</title>
+<style>
+:root{
+  --bg:#f3f5f9; --card:#ffffff; --text:#162033; --muted:#5a6578; --border:#dde2ea;
+  --accent:#2457d6; --accent-ink:#ffffff; --accent-soft:#e8eefc;
+  --ok:#147a4a; --ok-soft:#e3f5ec; --warn:#9a5b00; --warn-soft:#fff3dc;
+  --err:#b42318; --err-soft:#fdecea; --input:#ffffff; --code:#f6f8fb;
+  --grad-a:#1d3f9e; --grad-b:#2f6fe4; --grad-c:#2aa3b8;
+  --focus:#ff9f1c; --shadow:0 1px 2px rgba(16,24,40,.06),0 4px 16px rgba(16,24,40,.06);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0e1320; --card:#161d2e; --text:#e6eaf2; --muted:#9aa5b8; --border:#2a3348;
+    --accent:#6f9bff; --accent-ink:#0b1020; --accent-soft:#1c2846;
+    --ok:#4cc38a; --ok-soft:#12301f; --warn:#f0b54a; --warn-soft:#33270f;
+    --err:#ff7a6e; --err-soft:#3a1714; --input:#0f1524; --code:#0f1524;
+    --grad-a:#15275c; --grad-b:#1f4fb0; --grad-c:#18788a;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+header.hero{background:linear-gradient(135deg,var(--grad-a),var(--grad-b) 60%,var(--grad-c));color:#fff;padding:28px 0 22px}
+.hero h1{margin:0;font-size:1.65rem;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+.hero h1 svg{flex:none}
+.hero p{margin:6px 0 14px;opacity:.92;max-width:62ch}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.badges li{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);
+  border-radius:999px;padding:4px 11px;font-size:.84rem;font-weight:600}
+main{padding:20px 0 8px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:20px;margin:0 0 16px}
+.card h2{margin:0 0 4px;font-size:1.12rem;display:flex;align-items:center;gap:10px}
+.step{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;flex:none;
+  background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:.92rem}
+.sub{margin:0 0 14px;color:var(--muted);font-size:.92rem}
+label{font-weight:600;font-size:.9rem}
+.field{margin:12px 0}
+.field label{display:block;margin-bottom:4px}
+input[type=text],textarea{width:100%;font:inherit;color:var(--text);background:var(--input);
+  border:1px solid var(--border);border-radius:10px;padding:9px 11px}
+textarea{resize:vertical;min-height:120px;font-size:.9rem;line-height:1.45}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;font-variant-ligatures:none;letter-spacing:.02em}
+.hint{color:var(--muted);font-size:.84rem;margin-top:4px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);
+  padding:8px 14px;font-weight:600}
+button:hover:not(:disabled){border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);padding:11px 18px}
+button.primary:hover:not(:disabled){filter:brightness(1.07)}
+button:disabled{opacity:.55;cursor:not-allowed}
+button.small{padding:5px 10px;font-size:.85rem}
+button.danger{color:var(--err)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.grow{flex:1 1 220px;min-width:0}
+.drop{border:2px dashed var(--border);border-radius:12px;padding:22px 14px;text-align:center;background:var(--code);
+  transition:border-color .15s,background .15s;cursor:pointer}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop strong{display:block;margin-bottom:4px}
+.drop .hint{margin-bottom:10px}
+ul.files{list-style:none;margin:12px 0 0;padding:0;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+ul.files:empty{display:none}
+ul.files li{display:flex;align-items:center;gap:10px;padding:8px 10px;border-top:1px solid var(--border)}
+ul.files li:first-child{border-top:0}
+ul.files .fname{flex:1;min-width:0;overflow-wrap:anywhere}
+ul.files .fsize{color:var(--muted);font-size:.85rem;white-space:nowrap}
+ul.files button{padding:2px 9px;line-height:1.4}
+.total{margin-top:8px;font-size:.88rem;color:var(--muted)}
+.note{border-radius:10px;padding:9px 12px;margin:10px 0 0;font-size:.9rem}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.err{background:var(--err-soft);color:var(--err)}
+.note.ok{background:var(--ok-soft);color:var(--ok)}
+.note.info{background:var(--accent-soft);color:var(--text)}
+.note:empty{display:none}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.seg label{padding:7px 12px;cursor:pointer;font-weight:600;font-size:.88rem;display:flex;align-items:center;gap:6px}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg label:has(input:checked){background:var(--accent);color:var(--accent-ink)}
+.seg label:has(input:focus-visible){outline:3px solid var(--focus);outline-offset:-3px}
+.opts{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px}
+.opts label{font-weight:500;display:flex;gap:6px;align-items:center}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.pwbox{display:flex;gap:8px;flex-wrap:wrap}
+.pwbox input{flex:1 1 220px;font-size:1.05rem}
+.meter{height:8px;border-radius:999px;background:var(--border);overflow:hidden;margin-top:10px}
+.meter > div{height:100%;width:0;transition:width .2s,background .2s;background:var(--err)}
+.meter[data-level=good] > div{background:var(--warn)}
+.meter[data-level=strong] > div{background:var(--ok)}
+.strength{display:flex;justify-content:space-between;gap:8px;font-size:.86rem;margin-top:4px;color:var(--muted)}
+.strength b{color:var(--text)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+progress{width:100%;height:10px;margin-top:12px;accent-color:var(--accent)}
+progress[hidden]{display:none}
+.status{margin-top:8px;font-size:.92rem;color:var(--muted);min-height:1.4em}
+.hidden{display:none !important}
+.msghead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:14px 0 6px;flex-wrap:wrap}
+.msghead h3{margin:0;font-size:.98rem}
+.refbox{display:inline-block;background:var(--accent-soft);border-radius:8px;padding:2px 8px;font-weight:700}
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{text-align:left;padding:7px 10px;border-top:1px solid var(--border);vertical-align:top}
+th{background:var(--code);border-top:0;white-space:nowrap}
+td.wrap{overflow-wrap:anywhere;min-width:160px}
+td.nowrap{white-space:nowrap}
+.empty{color:var(--muted);font-size:.9rem;padding:10px}
+details{border-top:1px solid var(--border);padding:10px 0}
+details:first-of-type{border-top:0}
+summary{cursor:pointer;font-weight:600}
+details ol,details ul{margin:8px 0 0;padding-left:22px}
+details li{margin:3px 0}
+footer{color:var(--muted);font-size:.84rem;text-align:center;padding:8px 0 28px}
+@media (max-width:560px){
+  .grid2{grid-template-columns:1fr}
+  .card{padding:16px}
+  .hero h1{font-size:1.35rem}
+}
+@media (max-width:360px){
+  .wrap{padding:0 10px}
+  .card{padding:13px}
+  .seg label{padding:7px 9px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <h1><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.5"/></svg>SecureSend Helper</h1>
+    <p>Create a password-protected .7z archive to email to an external recipient, then send the password through a separate channel.</p>
+    <ul class="badges" aria-label="Security properties">
+      <li>&#128187; Files never leave your computer</li>
+      <li>&#128273; Passwords never stored</li>
+      <li>&#128274; AES-256 with encrypted file names</li>
+    </ul>
+  </div>
+</header>
+
+<main class="wrap">
+  <noscript><div class="card note err">This tool needs JavaScript enabled. Nothing is uploaded; all processing happens in this browser tab.</div></noscript>
+  <div id="envError" class="note err" role="alert"></div>
+
+  <!-- STEP 1 -->
+  <section class="card" aria-labelledby="h1">
+    <h2 id="h1"><span class="step" aria-hidden="true">1</span>Choose files</h2>
+    <p class="sub">Add the documents you want to send. They are read locally and are never uploaded.</p>
+    <div id="drop" class="drop" role="button" tabindex="0" aria-describedby="dropHint" aria-label="Add files: drop files here, or press Enter to browse">
+      <strong>Drag &amp; drop files here</strong>
+      <div class="hint" id="dropHint">or press Enter / click to browse. Multiple files allowed.</div>
+      <button type="button" id="browseBtn" tabindex="-1">Browse files…</button>
+      <input type="file" id="fileInput" multiple hidden>
+    </div>
+    <ul id="fileList" class="files" aria-label="Selected files"></ul>
+    <div id="totalLine" class="total" aria-live="polite"></div>
+    <div id="fileNote" class="note warn" role="status" aria-live="polite"></div>
+    <div class="field">
+      <label for="archiveName">Archive name</label>
+      <div class="row">
+        <input type="text" id="archiveName" class="grow" value="Secure_Documents" maxlength="100" autocomplete="off" spellcheck="false">
+        <span class="hint">.7z</span>
+      </div>
+      <div class="hint" id="nameHint">Characters not allowed in file names ( \ / : * ? " &lt; &gt; | ) are replaced with “_”.</div>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="card" aria-labelledby="h2">
+    <h2 id="h2"><span class="step" aria-hidden="true">2</span>Generate a strong password</h2>
+    <p class="sub">Generated with your browser's cryptographic random number generator. It is never saved and is cleared when you close this page.</p>
+    <div class="seg" role="radiogroup" aria-label="Password type">
+      <label><input type="radio" name="pwmode" value="chars" checked> Random characters</label>
+      <label><input type="radio" name="pwmode" value="words"> Passphrase</label>
+    </div>
+
+    <div id="charsOpts">
+      <div class="field">
+        <label for="pwLen">Length: <span id="pwLenVal">16</span> characters</label>
+        <input type="range" id="pwLen" min="12" max="32" value="16">
+      </div>
+      <div class="opts" role="group" aria-label="Character sets">
+        <label><input type="checkbox" id="optUpper" checked> Uppercase</label>
+        <label><input type="checkbox" id="optLower" checked> Lowercase</label>
+        <label><input type="checkbox" id="optDigits" checked> Digits</label>
+        <label><input type="checkbox" id="optSymbols" checked> Symbols (!@#$%&amp;*?-)</label>
+      </div>
+      <div class="hint">Look-alike characters (0 O o 1 l I) are excluded. At least one character from each selected set is guaranteed.</div>
+    </div>
+
+    <div id="wordsOpts" class="hidden">
+      <div class="field">
+        <label for="pwWords">Words: <span id="pwWordsVal">6</span></label>
+        <input type="range" id="pwWords" min="4" max="7" value="6">
+      </div>
+      <div class="hint">Easier to read out over the phone. Random characters give more strength per character.</div>
+    </div>
+
+    <div class="field">
+      <label for="pw">Password</label>
+      <div class="pwbox">
+        <input type="text" id="pw" class="mono" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-describedby="strengthText">
+        <button type="button" id="regenBtn">&#8635; Regenerate</button>
+        <button type="button" id="copyPwBtn">Copy</button>
+      </div>
+      <div class="meter" id="meter" aria-hidden="true"><div></div></div>
+      <div class="strength" id="strengthText" aria-live="polite"><span>Strength: <b id="strengthLabel">—</b></span><span id="entropyLabel"></span></div>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="card" aria-labelledby="h3">
+    <h2 id="h3"><span class="step" aria-hidden="true">3</span>Encrypt &amp; download</h2>
+    <p class="sub">Optional details are used only to fill in the messages in step 4 and the local send log.</p>
+    <div class="grid2">
+      <div class="field">
+        <label for="recipient">Recipient name / organisation <span class="hint">(optional)</span></label>
+        <input type="text" id="recipient" maxlength="120" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="sender">Your name <span class="hint">(optional)</span></label>
+        <input type="text" id="sender" maxlength="120" autocomplete="off">
+      </div>
+    </div>
+    <button type="button" class="primary" id="encryptBtn">&#128274; Encrypt &amp; Download .7z</button>
+    <progress id="progress" max="100" value="0" hidden></progress>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="encError" class="note err" role="alert"></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="card" aria-labelledby="h4" id="step4">
+    <h2 id="h4"><span class="step" aria-hidden="true">4</span>Send in two separate messages</h2>
+    <p class="sub" id="step4Intro">After you create an archive, two ready-to-send messages appear here.</p>
+    <div id="msgs" class="hidden">
+      <div class="note warn"><strong>Never send the password in the same email as the attachment.</strong> Send Message 2 by SMS, a phone call or a chat app.</div>
+      <p>Reference ID: <span class="refbox mono" id="refOut"></span></p>
+      <div class="msghead"><h3><label for="msg1">Message 1 — email body (attach the .7z)</label></h3>
+        <button type="button" class="small" id="copyMsg1">Copy</button></div>
+      <textarea id="msg1" rows="14" autocomplete="off"></textarea>
+      <div class="msghead"><h3><label for="msg2">Message 2 — password (SMS / call / chat)</label></h3>
+        <button type="button" class="small" id="copyMsg2">Copy</button></div>
+      <textarea id="msg2" rows="5" class="mono" autocomplete="off"></textarea>
+      <div class="hint">After pasting, consider copying something else so the password does not linger on your clipboard.</div>
+    </div>
+  </section>
+
+  <!-- LOG -->
+  <section class="card" aria-labelledby="hlog">
+    <h2 id="hlog">&#128203; Send log</h2>
+    <p class="sub">Kept only in this browser on this computer. Contains no passwords.</p>
+    <div class="row">
+      <button type="button" class="small" id="exportBtn">Export CSV</button>
+      <button type="button" class="small danger" id="clearLogBtn">Clear log</button>
+    </div>
+    <div class="tablewrap"><table aria-label="Send log">
+      <thead><tr><th scope="col">Ref ID</th><th scope="col">Date / time</th><th scope="col">Archive</th><th scope="col">Files</th><th scope="col">Recipient</th></tr></thead>
+      <tbody id="logBody"></tbody>
+    </table></div>
+    <div id="logNote" class="note info" role="status" aria-live="polite"></div>
+    <p class="hint">Forgotten passwords cannot be recovered — by design, nothing can decrypt the archive without it. Create a new archive with a new password and re-send.</p>
+  </section>
+
+  <!-- HELP -->
+  <section class="card" aria-labelledby="hhelp">
+    <h2 id="hhelp">&#10067; How the recipient opens it</h2>
+    <details open>
+      <summary>Windows</summary>
+      <ol>
+        <li>Install <b>7-Zip</b> (free, 7-zip.org), or use WinRAR or WinZip.</li>
+        <li>Right-click the .7z file → <i>7-Zip</i> → <i>Extract Here</i> (or open it in the app).</li>
+        <li>Enter the password exactly as received — it is case-sensitive.</li>
+      </ol>
+      <p class="hint">Windows' built-in archive support may not open encrypted .7z files; use one of the apps above.</p>
+    </details>
+    <details>
+      <summary>Mac</summary>
+      <ol>
+        <li>Install <b>Keka</b> or <b>The Unarchiver</b> (free, Mac App Store). Archive Utility cannot open .7z.</li>
+        <li>Double-click the .7z file and enter the password when prompted.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Phone / Linux</summary>
+      <ul>
+        <li>Android: ZArchiver. iPhone/iPad: an app that supports encrypted 7z (e.g. iZip).</li>
+        <li>Linux: <span class="mono">7z x Secure_Documents.7z</span> (p7zip / 7-Zip).</li>
+      </ul>
+    </details>
+    <details>
+      <summary>It says “wrong password” or shows an error</summary>
+      <ul>
+        <li>Check capital letters and look-alike symbols; copy-paste if possible, avoiding a trailing space.</li>
+        <li>Confirm the Reference ID in both messages matches.</li>
+        <li>If still failing, ask the sender to create a new archive and resend.</li>
+      </ul>
+    </details>
+  </section>
+</main>
+<footer class="wrap">SecureSend Helper <span id="ver"></span> · Runs entirely in your browser · 7z / 7zAES (AES-256-CBC, SHA-256 key derivation, 2<sup>19</sup> rounds)</footer>
+
+<script>
+'use strict';
+const APP_VERSION = 'v1.0.0';
+
+/* ===== CORE-BEGIN (7z + AES-256 engine; no DOM access) ===== */
+const SevenZipAES = (() => {
+  // ---------- CRC32 (IEEE, as used by 7z) ----------
+  const CRC_TABLE = (() => {
+    const t = new Int32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c;
+    }
+    return t;
+  })();
+  function crc32(u8, start = 0, end = u8.length) {
+    let c = -1;
+    for (let i = start; i < end; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ -1) >>> 0;
+  }
+
+  // ---------- Streaming SHA-256 ----------
+  const K = new Int32Array([
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+  class Sha256 {
+    constructor() {
+      this.h = new Int32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
+      this.w = new Int32Array(64);
+      this.buf = new Uint8Array(64);
+      this.bufLen = 0;
+      this.total = 0; // bytes
+    }
+    _block(p, o) {
+      const w = this.w, h = this.h;
+      for (let i = 0; i < 16; i++, o += 4) w[i] = (p[o] << 24) | (p[o+1] << 16) | (p[o+2] << 8) | p[o+3];
+      for (let i = 16; i < 64; i++) {
+        const x = w[i-15], y = w[i-2];
+        const s0 = ((x >>> 7) | (x << 25)) ^ ((x >>> 18) | (x << 14)) ^ (x >>> 3);
+        const s1 = ((y >>> 17) | (y << 15)) ^ ((y >>> 19) | (y << 13)) ^ (y >>> 10);
+        w[i] = (w[i-16] + s0 + w[i-7] + s1) | 0;
+      }
+      let a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
+      for (let i = 0; i < 64; i++) {
+        const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+        const t1 = (hh + S1 + ((e & f) ^ (~e & g)) + K[i] + w[i]) | 0;
+        const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+        const t2 = (S0 + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+        hh = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+      }
+      h[0] = (h[0] + a) | 0; h[1] = (h[1] + b) | 0; h[2] = (h[2] + c) | 0; h[3] = (h[3] + d) | 0;
+      h[4] = (h[4] + e) | 0; h[5] = (h[5] + f) | 0; h[6] = (h[6] + g) | 0; h[7] = (h[7] + hh) | 0;
+    }
+    update(data) {
+      const len = data.length;
+      let off = 0;
+      this.total += len;
+      if (this.bufLen > 0) {
+        const n = Math.min(64 - this.bufLen, len);
+        this.buf.set(data.subarray(0, n), this.bufLen);
+        this.bufLen += n; off = n;
+        if (this.bufLen < 64) return this;
+        this._block(this.buf, 0); this.bufLen = 0;
+      }
+      while (off + 64 <= len) { this._block(data, off); off += 64; }
+      if (off < len) { this.buf.set(data.subarray(off), 0); this.bufLen = len - off; }
+      return this;
+    }
+    digest() {
+      const bits = this.total * 8;
+      const hi = Math.floor(bits / 0x100000000), lo = bits >>> 0;
+      const padLen = (this.bufLen < 56 ? 56 : 120) - this.bufLen;
+      const pad = new Uint8Array(padLen + 8);
+      pad[0] = 0x80;
+      const dv = new DataView(pad.buffer);
+      dv.setUint32(padLen, hi); dv.setUint32(padLen + 4, lo);
+      this.update(pad);
+      const out = new Uint8Array(32), odv = new DataView(out.buffer);
+      for (let i = 0; i < 8; i++) odv.setInt32(i * 4, this.h[i]);
+      return out;
+    }
+  }
+  function sha256(u8) { return new Sha256().update(u8).digest(); }
+
+  // ---------- Helpers ----------
+  function utf16le(str, nullTerminate) {
+    const out = new Uint8Array((str.length + (nullTerminate ? 1 : 0)) * 2);
+    for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); out[2*i] = c & 0xFF; out[2*i+1] = c >>> 8; }
+    return out; // trailing zeros already present if nullTerminate
+  }
+  const tick = () => new Promise(r => setTimeout(r, 0));
+
+  // ---------- 7-Zip key derivation (7zAES) ----------
+  // key = SHA-256( for i in 0..2^power-1: salt || UTF-16LE(password) || uint64le(i) )
+  async function deriveKey(password, salt, power, onProgress) {
+    const pw = utf16le(password, false);
+    const unit = salt.length + pw.length + 8;
+    const rounds = 2 ** power;
+    const BATCH = Math.min(rounds, 4096);
+    const buf = new Uint8Array(unit * BATCH);
+    for (let j = 0; j < BATCH; j++) { buf.set(salt, j * unit); buf.set(pw, j * unit + salt.length); }
+    const ctrOff = salt.length + pw.length;
+    const sha = new Sha256();
+    let lastYield = Date.now();
+    for (let base = 0; base < rounds; base += BATCH) {
+      const n = Math.min(BATCH, rounds - base);
+      for (let j = 0; j < n; j++) {
+        const v = base + j, p = j * unit + ctrOff;
+        buf[p] = v & 0xFF; buf[p+1] = (v >>> 8) & 0xFF; buf[p+2] = (v >>> 16) & 0xFF; buf[p+3] = (v >>> 24) & 0xFF;
+        // high 4 bytes of the counter stay 0 (rounds <= 2^32)
+      }
+      sha.update(n === BATCH ? buf : buf.subarray(0, n * unit));
+      if (Date.now() - lastYield > 40) {
+        if (onProgress) onProgress((base + n) / rounds);
+        await tick(); lastYield = Date.now();
+      }
+    }
+    if (onProgress) onProgress(1);
+    return sha.digest();
+  }
+
+  // ---------- AES-256-CBC with 7-Zip's zero padding ----------
+  async function aesEncryptZeroPadded(subtle, cryptoKey, iv, plain) {
+    const padded = Math.ceil(plain.length / 16) * 16;
+    let input = plain;
+    if (padded !== plain.length) { input = new Uint8Array(padded); input.set(plain); }
+    // WebCrypto appends one PKCS#7 block (always 16 bytes here because input is block-aligned); drop it.
+    const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-CBC', iv }, cryptoKey, input));
+    if (ct.length !== padded + 16) throw new Error('Unexpected AES output length');
+    return ct.subarray(0, padded);
+  }
+
+  // ---------- 7z header byte writer ----------
+  class W {
+    constructor() { this.a = []; }
+    byte(b) { this.a.push(b & 0xFF); return this; }
+    raw(arr) { for (let i = 0; i < arr.length; i++) this.a.push(arr[i]); return this; }
+    num(v) { // 7z variable-length UINT64
+      v = BigInt(v);
+      let first = 0, mask = 0x80, i;
+      for (i = 0; i < 8; i++) {
+        if (v < (1n << BigInt(7 * (i + 1)))) { first |= Number(v >> BigInt(8 * i)); break; }
+        first |= mask; mask >>= 1;
+      }
+      this.a.push(first);
+      for (let j = 0; j < i; j++) { this.a.push(Number(v & 0xFFn)); v >>= 8n; }
+      return this;
+    }
+    u32(v) { return this.raw([v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF]); }
+    u64(v) { v = BigInt(v); for (let i = 0; i < 8; i++) { this.a.push(Number(v & 0xFFn)); v >>= 8n; } return this; }
+    bytes() { return Uint8Array.from(this.a); }
+  }
+
+  const K_END = 0x00, K_HEADER = 0x01, K_MAIN_STREAMS = 0x04, K_FILES = 0x05, K_PACK_INFO = 0x06,
+        K_UNPACK_INFO = 0x07, K_SUBSTREAMS = 0x08, K_SIZE = 0x09, K_CRC = 0x0A, K_FOLDER = 0x0B,
+        K_UNPACK_SIZE = 0x0C, K_NUM_UNPACK = 0x0D, K_NAME = 0x11, K_MTIME = 0x14, K_ENCODED_HEADER = 0x17;
+  const AES_METHOD_ID = [0x06, 0xF1, 0x07, 0x01];
+  const NUM_CYCLES_POWER = 19;
+
+  function aesProps(salt, iv) {
+    let b0 = NUM_CYCLES_POWER | 0x40;  // IV present
+    if (salt.length) b0 |= 0x80;       // salt present
+    const b1 = ((salt.length ? salt.length - 1 : 0) << 4) | (iv.length - 1);
+    return [b0, b1, ...salt, ...iv];
+  }
+
+  function writeStreamsInfo(w, s) {
+    w.byte(K_PACK_INFO).num(s.packPos).num(1).byte(K_SIZE).num(s.packSize).byte(K_END);
+    w.byte(K_UNPACK_INFO).byte(K_FOLDER).num(1).byte(0);          // 1 folder, not external
+    w.num(1);                                                       // 1 coder
+    w.byte(0x20 | AES_METHOD_ID.length).raw(AES_METHOD_ID);         // simple coder + has properties
+    w.num(s.props.length).raw(s.props);
+    w.byte(K_UNPACK_SIZE).num(s.unpackSize);
+    if (s.folderCrc != null) w.byte(K_CRC).byte(1).u32(s.folderCrc);
+    w.byte(K_END);
+    if (s.subSizes) {
+      w.byte(K_SUBSTREAMS).byte(K_NUM_UNPACK).num(s.subSizes.length);
+      if (s.subSizes.length > 1) { w.byte(K_SIZE); for (let i = 0; i < s.subSizes.length - 1; i++) w.num(s.subSizes[i]); }
+      w.byte(K_CRC).byte(1); for (const c of s.subCrcs) w.u32(c);
+      w.byte(K_END);
+    }
+    w.byte(K_END);
+  }
+
+  function filetime(ms) { return (BigInt(Math.max(0, Math.round(ms))) + 11644473600000n) * 10000n; }
+
+  /**
+   * files: [{ name, data: Uint8Array (length > 0), mtime: ms since epoch }]
+   * env:   { subtle, getRandomValues }
+   * Returns { parts: Uint8Array[], size }
+   */
+  async function build(files, password, env, onProgress) {
+    const progress = (phase, frac) => { if (onProgress) onProgress(phase, frac); };
+    if (!files.length) throw new Error('No files to archive.');
+    for (const f of files) if (!f.data.length) throw new Error('Empty (0-byte) files are not supported: ' + f.name);
+    const rnd = n => { const u = new Uint8Array(n); env.getRandomValues(u); return u; };
+
+    // 1. Concatenate data into one solid stream (zero-padded to 16) and compute per-file CRC32s
+    const total = files.reduce((s, f) => s + f.data.length, 0);
+    const stream = new Uint8Array(Math.ceil(total / 16) * 16);
+    const sizes = [], crcs = [];
+    let off = 0;
+    for (let i = 0; i < files.length; i++) {
+      const d = files[i].data;
+      stream.set(d, off); sizes.push(d.length); crcs.push(crc32(d)); off += d.length;
+      progress('crc', (i + 1) / files.length);
+      await tick();
+    }
+
+    // 2. Key derivation
+    const salt = new Uint8Array(0);
+    const keyBytes = await deriveKey(password, salt, NUM_CYCLES_POWER, f => progress('kdf', f));
+    const key = await env.subtle.importKey('raw', keyBytes, { name: 'AES-CBC' }, false, ['encrypt']);
+    keyBytes.fill(0);
+
+    // 3. Encrypt file data
+    progress('encrypt', 0);
+    const iv1 = rnd(16);
+    const packedData = await aesEncryptZeroPadded(env.subtle, key, iv1, stream.subarray(0, total));
+    stream.fill(0);
+    progress('encrypt', 1);
+
+    // 4. Plain header: MainStreamsInfo + FilesInfo
+    const h = new W();
+    h.byte(K_HEADER).byte(K_MAIN_STREAMS);
+    writeStreamsInfo(h, { packPos: 0, packSize: packedData.length, props: aesProps(salt, iv1),
+                          unpackSize: total, folderCrc: null, subSizes: sizes, subCrcs: crcs });
+    h.byte(K_FILES).num(files.length);
+    const names = new W().byte(0);                                   // external = 0
+    for (const f of files) names.raw(utf16le(f.name, true));
+    h.byte(K_NAME).num(names.a.length).raw(names.a);
+    const times = new W().byte(1).byte(0);                            // allDefined, external = 0
+    for (const f of files) times.u64(filetime(f.mtime));
+    h.byte(K_MTIME).num(times.a.length).raw(times.a);
+    h.byte(K_END);                                                    // end FilesInfo
+    h.byte(K_END);                                                    // end Header
+    const plainHeader = h.bytes();
+
+    // 5. Encrypt header (same key, new IV) and describe it in a kEncodedHeader
+    const iv2 = rnd(16);
+    const packedHeader = await aesEncryptZeroPadded(env.subtle, key, iv2, plainHeader);
+    const eh = new W().byte(K_ENCODED_HEADER);
+    writeStreamsInfo(eh, { packPos: packedData.length, packSize: packedHeader.length, props: aesProps(salt, iv2),
+                           unpackSize: plainHeader.length, folderCrc: crc32(plainHeader), subSizes: null });
+    const encodedHeader = eh.bytes();
+    plainHeader.fill(0);
+
+    // 6. Signature header
+    const tail = new W().u64(packedData.length + packedHeader.length).u64(encodedHeader.length).u32(crc32(encodedHeader)).bytes();
+    const sig = new W().raw([0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C, 0x00, 0x04]).u32(crc32(tail)).raw(tail).bytes();
+
+    const parts = [sig, packedData, packedHeader, encodedHeader];
+    return { parts, size: parts.reduce((s, p) => s + p.length, 0) };
+  }
+
+  return { build, crc32, sha256, Sha256, deriveKey, utf16le, NUM_CYCLES_POWER };
+})();
+/* ===== CORE-END ===== */
+
+/* ===== UI ===== */
+(() => {
+  const $ = id => document.getElementById(id);
+  const EMAIL_LIMIT = 25 * 1024 * 1024;
+  const HARD_LIMIT = 500 * 1024 * 1024;
+  const MIN_PW = 10;
+  const LOG_KEY = 'securesend.sendlog.v1';
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  $('ver').textContent = APP_VERSION;
+
+  const cryptoOk = !!(window.crypto && crypto.getRandomValues && crypto.subtle);
+  if (!cryptoOk) {
+    $('envError').textContent = 'This browser does not provide the Web Crypto API here. Open the page over https:// or directly from disk (file://) in a current version of Chrome, Edge, Firefox or Safari.';
+  }
+
+  // ---------- secure random ----------
+  function randInt(n) { // unbiased integer in [0, n)
+    if (n <= 0 || n > 0x100000000) throw new Error('bad range');
+    const limit = Math.floor(0x100000000 / n) * n;
+    const u = new Uint32Array(1);
+    for (;;) { crypto.getRandomValues(u); if (u[0] < limit) return u[0] % n; }
+  }
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = randInt(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+  // ---------- Step 1: files ----------
+  let files = []; // { file, id }
+  let nextId = 1;
+  function fmtSize(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 2 : 1) + ' MB';
+  }
+  function renderFiles() {
+    const ul = $('fileList');
+    ul.textContent = '';
+    for (const f of files) {
+      const li = document.createElement('li');
+      const nm = document.createElement('span'); nm.className = 'fname'; nm.textContent = f.file.name;
+      const sz = document.createElement('span'); sz.className = 'fsize'; sz.textContent = fmtSize(f.file.size);
+      const rm = document.createElement('button'); rm.type = 'button'; rm.textContent = '✕';
+      rm.setAttribute('aria-label', 'Remove ' + f.file.name); rm.title = 'Remove';
+      rm.addEventListener('click', () => { files = files.filter(x => x.id !== f.id); otherNote = ''; renderFiles(); $('drop').focus(); });
+      li.append(nm, sz, rm); ul.append(li);
+    }
+    const total = files.reduce((s, f) => s + f.file.size, 0);
+    $('totalLine').textContent = files.length ? `${files.length} file${files.length > 1 ? 's' : ''} · ${fmtSize(total)} total` : '';
+    sizeNote = total > EMAIL_LIMIT
+      ? `Total is ${fmtSize(total)}, above the typical 25 MB email attachment limit. Consider splitting into several archives or using an approved file-transfer service.`
+      : '';
+    paintNote();
+  }
+  let sizeNote = '', otherNote = '';
+  function paintNote() { $('fileNote').textContent = [otherNote, sizeNote].filter(Boolean).join(' '); }
+  function setFileNote(msg) { otherNote = msg; paintNote(); }
+  function addFiles(list) {
+    const skipped = [];
+    for (const file of list) {
+      if (file.size === 0) { skipped.push(`“${file.name}” is empty (0 bytes) and was not added.`); continue; }
+      if (files.some(f => f.file.name === file.name && f.file.size === file.size && f.file.lastModified === file.lastModified)) {
+        skipped.push(`“${file.name}” is already in the list.`); continue;
+      }
+      files.push({ file, id: nextId++ });
+    }
+    otherNote = skipped.join(' ');
+    renderFiles();
+  }
+  const drop = $('drop'), input = $('fileInput');
+  drop.addEventListener('click', e => { if (e.target !== input) input.click(); });
+  drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+  input.addEventListener('change', () => { addFiles(input.files); input.value = ''; });
+  ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; drop.classList.add('over'); }));
+  ['dragleave', 'dragend'].forEach(t => drop.addEventListener(t, e => { if (!drop.contains(e.relatedTarget)) drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('over');
+    const dt = e.dataTransfer, out = [];
+    if (dt.items && dt.items.length) {
+      for (const it of dt.items) {
+        if (it.kind !== 'file') continue;
+        const entry = it.webkitGetAsEntry && it.webkitGetAsEntry();
+        if (entry && entry.isDirectory) { setFileNote('Folders cannot be added directly — open the folder and select the files inside it.'); continue; }
+        const f = it.getAsFile(); if (f) out.push(f);
+      }
+    } else for (const f of dt.files) out.push(f);
+    if (out.length) addFiles(out);
+  });
+  // Stop the browser from opening a file dropped outside the zone
+  window.addEventListener('dragover', e => e.preventDefault());
+  window.addEventListener('drop', e => e.preventDefault());
+
+  function sanitizeName(s) {
+    let n = String(s).normalize('NFC').replace(/[\\/:*?"<>|\u0000-\u001F\u007F]/g, '_').replace(/\.7z$/i, '').trim().replace(/[. ]+$/, '');
+    if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(n)) n = '_' + n;
+    return n.slice(0, 100) || 'Secure_Documents';
+  }
+  $('archiveName').addEventListener('change', e => { e.target.value = sanitizeName(e.target.value); });
+
+  // ---------- Step 2: password ----------
+  const SETS = {
+    upper: 'ABCDEFGHJKLMNPQRSTUVWXYZ',   // no O, I
+    lower: 'abcdefghijkmnpqrstuvwxyz',   // no o, l
+    digits: '23456789',                  // no 0, 1
+    symbols: '!@#$%&*?-'
+  };
+  const WORDS = ('apple anchor arrow autumn bakery banana basket beacon berry blossom bridge bright button cabin camera candle canyon carbon carpet castle cedar cherry circle clover cobalt comet copper coral cotton crystal dancer delta desert dinner dolphin dragon eagle early echo ember engine falcon feather festival forest fossil fountain galaxy garden ginger glacier golden granite gravel harbor harvest hazel helmet honey horizon island ivory jacket jasmine jungle kettle kingdom ladder lantern lemon letter liberty lilac marble meadow melody mirror monkey morning mountain needle nectar noble ocean olive orange orbit orchid paddle palace panda paper parrot pencil pepper piano pillow planet pocket prairie pumpkin puzzle quarter quartz rabbit radar rainbow raven ribbon river rocket saddle salmon sandal season shadow silver sketch spider spring stable summer sunset table tango temple thunder ticket tiger timber tomato tower travel tulip tunnel turtle umbrella valley velvet violin voyage walnut window winter wizard yellow zebra').split(' ');
+
+  let pwEntropy = 0, generatedValue = '';
+  const mode = () => document.querySelector('input[name=pwmode]:checked').value;
+
+  function genChars() {
+    const len = +$('pwLen').value;
+    const chosen = ['upper', 'lower', 'digits', 'symbols'].filter(k => $('opt' + k[0].toUpperCase() + k.slice(1)).checked);
+    if (!chosen.length) { $('optLower').checked = true; chosen.push('lower'); }
+    const pool = chosen.map(k => SETS[k]).join('');
+    const out = chosen.map(k => SETS[k][randInt(SETS[k].length)]);   // guarantee one of each
+    while (out.length < len) out.push(pool[randInt(pool.length)]);
+    shuffle(out);
+    pwEntropy = len * Math.log2(pool.length);
+    return out.join('');
+  }
+  function genWords() {
+    const n = +$('pwWords').value, parts = [];
+    for (let i = 0; i < n; i++) { const w = WORDS[randInt(WORDS.length)]; parts.push(w[0].toUpperCase() + w.slice(1)); }
+    parts.push(String(10 + randInt(90)));
+    pwEntropy = n * Math.log2(WORDS.length) + Math.log2(90);
+    return parts.join('-');
+  }
+  function estimateEntropy(pw) {
+    if (!pw) return 0;
+    let pool = 0;
+    if (/[a-z]/.test(pw)) pool += 26;
+    if (/[A-Z]/.test(pw)) pool += 26;
+    if (/[0-9]/.test(pw)) pool += 10;
+    if (/[^A-Za-z0-9]/.test(pw)) pool += 33;
+    let bits = pw.length * Math.log2(Math.max(pool, 2));
+    if (/^(.)\1+$/.test(pw)) bits = Math.log2(pool) + 2; // all same char
+    return bits;
+  }
+  function updateStrength() {
+    const pw = $('pw').value;
+    const bits = pw === generatedValue ? pwEntropy : estimateEntropy(pw);
+    let level = 'weak', label = 'Weak';
+    if (pw.length >= MIN_PW && bits >= 65) { level = 'strong'; label = 'Strong'; }
+    else if (pw.length >= MIN_PW && bits >= 45) { level = 'good'; label = 'Good'; }
+    const m = $('meter'); m.dataset.level = level;
+    m.firstElementChild.style.width = pw ? Math.max(6, Math.min(100, bits / 100 * 100)) + '%' : '0';
+    $('strengthLabel').textContent = pw ? label : '—';
+    $('entropyLabel').textContent = pw ? `≈ ${Math.round(bits)} bits${pw === generatedValue ? '' : ' (estimate)'}` + (pw.length < MIN_PW ? ` · minimum ${MIN_PW} characters` : '') : '';
+  }
+  function regenerate() {
+    generatedValue = mode() === 'words' ? genWords() : genChars();
+    $('pw').value = generatedValue;
+    updateStrength();
+  }
+  document.querySelectorAll('input[name=pwmode]').forEach(r => r.addEventListener('change', () => {
+    $('charsOpts').classList.toggle('hidden', mode() !== 'chars');
+    $('wordsOpts').classList.toggle('hidden', mode() !== 'words');
+    regenerate();
+  }));
+  $('pwLen').addEventListener('input', e => { $('pwLenVal').textContent = e.target.value; regenerate(); });
+  $('pwWords').addEventListener('input', e => { $('pwWordsVal').textContent = e.target.value; regenerate(); });
+  ['optUpper', 'optLower', 'optDigits', 'optSymbols'].forEach(id => $(id).addEventListener('change', regenerate));
+  $('pw').addEventListener('input', updateStrength);
+  $('regenBtn').addEventListener('click', regenerate);
+
+  async function copyText(text, btn, fallbackEl) {
+    const orig = btn.dataset.label || (btn.dataset.label = btn.textContent);
+    let ok = false;
+    try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; } } catch (_) {}
+    if (!ok && fallbackEl) {
+      try { fallbackEl.focus(); fallbackEl.select(); ok = document.execCommand('copy'); } catch (_) {}
+    }
+    btn.textContent = ok ? 'Copied ✓' : 'Select & copy manually';
+    clearTimeout(btn._t); btn._t = setTimeout(() => { btn.textContent = orig; }, 1800);
+  }
+  $('copyPwBtn').addEventListener('click', e => copyText($('pw').value, e.currentTarget, $('pw')));
+  $('copyMsg1').addEventListener('click', e => copyText($('msg1').value, e.currentTarget, $('msg1')));
+  $('copyMsg2').addEventListener('click', e => copyText($('msg2').value, e.currentTarget, $('msg2')));
+
+  // Clear secrets when the page is closed / hidden into the back-forward cache
+  function wipeSecrets() {
+    $('pw').value = ''; $('msg2').value = ''; generatedValue = '';
+  }
+  window.addEventListener('pagehide', wipeSecrets);
+  window.addEventListener('beforeunload', wipeSecrets);
+  window.addEventListener('pageshow', e => { if (e.persisted || !$('pw').value) regenerate(); });
+
+  // ---------- Send log ----------
+  function loadLog() { try { const v = JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (_) { return []; } }
+  function saveLog(list) { try { localStorage.setItem(LOG_KEY, JSON.stringify(list)); return true; } catch (_) { return false; } }
+  const pad2 = n => String(n).padStart(2, '0');
+  function fmtDate(iso) { const d = new Date(iso); return `${pad2(d.getDate())}-${MONTHS[d.getMonth()]}-${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+  function renderLog() {
+    const body = $('logBody'); body.textContent = '';
+    const log = loadLog();
+    if (!log.length) {
+      const tr = document.createElement('tr'), td = document.createElement('td');
+      td.colSpan = 5; td.className = 'empty'; td.textContent = 'No archives created yet.'; tr.append(td); body.append(tr); return;
+    }
+    for (const e of log.slice().reverse()) {
+      const tr = document.createElement('tr');
+      [[e.ref, 'nowrap mono'], [fmtDate(e.date), 'nowrap'], [e.archive, 'wrap'], [(e.files || []).join('; '), 'wrap'], [e.recipient || '—', 'wrap']]
+        .forEach(([t, c]) => { const td = document.createElement('td'); td.className = c; td.textContent = t; tr.append(td); });
+      body.append(tr);
+    }
+  }
+  function newRef() {
+    const d = new Date(), A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let s = ''; for (let i = 0; i < 4; i++) s += A[randInt(A.length)];
+    return `SS-${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}-${s}`;
+  }
+  function downloadBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name; a.rel = 'noopener';
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+  $('exportBtn').addEventListener('click', () => {
+    const log = loadLog();
+    if (!log.length) { $('logNote').textContent = 'The log is empty — nothing to export.'; return; }
+    const cell = v => { let s = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
+    const rows = [['Ref ID', 'Date/Time', 'Archive', 'Files', 'Recipient']]
+      .concat(log.map(e => [e.ref, fmtDate(e.date), e.archive, (e.files || []).join('; '), e.recipient || '']));
+    const csv = '﻿' + rows.map(r => r.map(cell).join(',')).join('\r\n') + '\r\n';
+    const d = new Date();
+    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `SecureSend_log_${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}.csv`);
+    $('logNote').textContent = `Exported ${log.length} entr${log.length === 1 ? 'y' : 'ies'}.`;
+  });
+  $('clearLogBtn').addEventListener('click', () => {
+    if (!loadLog().length) { $('logNote').textContent = 'The log is already empty.'; return; }
+    if (!confirm('Clear the entire send log on this computer? This cannot be undone.')) return;
+    try { localStorage.removeItem(LOG_KEY); } catch (_) {}
+    renderLog(); $('logNote').textContent = 'Send log cleared.';
+  });
+
+  // ---------- Step 3: encrypt ----------
+  function setStatus(t) { $('status').textContent = t; }
+  function setProgress(v) { const p = $('progress'); if (v == null) { p.hidden = true; return; } p.hidden = false; p.value = Math.round(v * 100); }
+
+  $('encryptBtn').addEventListener('click', async () => {
+    const btn = $('encryptBtn');
+    $('encError').textContent = '';
+    const pw = $('pw').value;
+    const errs = [];
+    if (!cryptoOk) errs.push('Web Crypto is not available in this browser context.');
+    if (!files.length) errs.push('Add at least one file in step 1.');
+    if (pw.length < MIN_PW) errs.push(`The password must be at least ${MIN_PW} characters.`);
+    if (/^\s|\s$/.test(pw)) errs.push('The password starts or ends with a space — recipients often miss this. Please remove it.');
+    const total = files.reduce((s, f) => s + f.file.size, 0);
+    if (total > HARD_LIMIT) errs.push(`Total size ${fmtSize(total)} exceeds this tool's ${fmtSize(HARD_LIMIT)} limit.`);
+    if (errs.length) { $('encError').textContent = errs.join(' '); return; }
+
+    const archive = sanitizeName($('archiveName').value);
+    $('archiveName').value = archive;
+    btn.disabled = true;
+    const phaseText = { read: 'Reading files', crc: 'Computing checksums', kdf: 'Deriving key (2^19 SHA-256 rounds)', encrypt: 'Encrypting with AES-256' };
+    const weights = { read: [0, .25], crc: [.25, .35], kdf: [.35, .8], encrypt: [.8, .98] };
+    const onProg = (phase, f) => { const [a, b] = weights[phase]; setProgress(a + (b - a) * f); setStatus(phaseText[phase] + '…'); };
+    try {
+      setProgress(0);
+      // Unique names inside the archive
+      const used = new Set(), entries = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i].file;
+        onProg('read', i / files.length);
+        let name = file.name.replace(/[\\/]/g, '_') || 'file';
+        if (used.has(name.toLowerCase())) {
+          const dot = name.lastIndexOf('.'), base = dot > 0 ? name.slice(0, dot) : name, ext = dot > 0 ? name.slice(dot) : '';
+          let k = 2; while (used.has(`${base} (${k})${ext}`.toLowerCase())) k++;
+          name = `${base} (${k})${ext}`;
+        }
+        used.add(name.toLowerCase());
+        let data;
+        try { data = new Uint8Array(await file.arrayBuffer()); }
+        catch (_) { throw new Error(`Could not read “${file.name}”. It may have been moved or deleted — remove it and add it again.`); }
+        if (!data.length) throw new Error(`“${file.name}” is empty (0 bytes). Remove it and try again.`);
+        entries.push({ name, data, mtime: file.lastModified || Date.now() });
+      }
+      onProg('read', 1);
+      const result = await SevenZipAES.build(entries, pw, { subtle: crypto.subtle, getRandomValues: a => crypto.getRandomValues(a) }, onProg);
+      entries.length = 0;
+      const fileName = archive + '.7z';
+      downloadBlob(new Blob(result.parts, { type: 'application/x-7z-compressed' }), fileName);
+      setProgress(1);
+
+      const ref = newRef();
+      const entry = { ref, date: new Date().toISOString(), archive: fileName, files: files.map(f => f.file.name), recipient: $('recipient').value.trim() };
+      const log = loadLog(); log.push(entry);
+      const saved = saveLog(log);
+      renderLog();
+      showMessages(ref, fileName, files.length, pw);
+      setStatus(`Done — “${fileName}” (${fmtSize(result.size)}) downloaded.` + (saved ? '' : ' (Note: the send log could not be saved in this browser.)') + ' Now send the two messages in step 4.');
+      $('step4').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+      setProgress(null); setStatus('');
+      $('encError').textContent = 'Encryption failed: ' + (err && err.message ? err.message : String(err));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ---------- Step 4: messages ----------
+  function showMessages(ref, fileName, count, pw) {
+    const rcpt = $('recipient').value.trim(), sender = $('sender').value.trim();
+    $('refOut').textContent = ref;
+    $('msg1').value =
+`Subject: Secure documents – Ref ${ref}
+
+Dear ${rcpt || 'Sir/Madam'},
+
+Please find attached a password-protected archive, "${fileName}" (Reference: ${ref}), containing ${count} file${count > 1 ? 's' : ''}.
+
+For security, the password will be sent to you separately through another channel (e.g. SMS, phone call or chat). Please do not reply to this email with the password.
+
+To open the attachment:
+- Windows: 7-Zip (free), WinRAR or WinZip
+- Mac: Keka or The Unarchiver (free)
+Open the .7z file and enter the password when prompted. The password is case-sensitive.
+
+If you have any difficulty opening the file, please let me know.
+
+Best regards,
+${sender || '[Your name]'}`;
+    $('msg2').value =
+`Password for Ref ${ref} (${fileName}):
+${pw}
+This password is case-sensitive. Please do not forward it.${sender ? '\n– ' + sender : ''}`;
+    $('msgs').classList.remove('hidden');
+    $('step4Intro').textContent = 'Send Message 1 by email with the .7z attached. Send Message 2 through a different channel.';
+  }
+
+  // ---------- init ----------
+  renderLog();
+  regenerate();
+})();
+</script>
+</body>
+</html>

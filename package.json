@@ -1,0 +1,17 @@
+{
+  "name": "securesend-helper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser-only AES-256 .7z archive creator with encrypted file names",
+  "type": "module",
+  "scripts": {
+    "test": "npm run test:core && npm run test:e2e",
+    "test:core": "node tests/core.test.mjs",
+    "test:e2e": "node tests/e2e.test.mjs",
+    "serve": "npx --yes http-server site -p 8080 -c-1"
+  },
+  "devDependencies": {
+    "puppeteer-core": "23.11.1"
+  },
+  "license": "MIT"
+}

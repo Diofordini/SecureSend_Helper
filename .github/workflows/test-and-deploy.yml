@@ -1,0 +1,64 @@
+name: Test & deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install 7-Zip CLI
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq p7zip-full && 7z | head -2
+
+      - run: npm ci
+
+      - name: Core tests (engine vs real 7-Zip)
+        run: npm run test:core
+
+      - name: End-to-end browser tests (file://, headless Chrome)
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: npm run test:e2e
+
+      - name: Publish checksum
+        run: |
+          echo "### index.html SHA-256" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          sha256sum site/index.html >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site          # only index.html is published, never the tests
+      - id: deployment
+        uses: actions/deploy-pages@v4
